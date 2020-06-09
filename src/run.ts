@@ -6,6 +6,8 @@ import * as exec from '@actions/exec'
 
 import * as util from './util'
 
+import { Stream } from './stream'
+
 type Outputs = {
   [key: string]: {
     sensitive: boolean
@@ -61,18 +63,14 @@ export async function run(): Promise<void> {
   const output = core.getInput('outputs')
 
   if (output && (output === 'true' || output === 'on')) {
-    let stdout = ''
+    const stream = new Stream()
 
     await exec.exec('terraform', ['output', '-json'], {
       cwd,
-      listeners: {
-        stdout: (data: Buffer) => {
-          stdout += data.toString()
-        },
-      },
+      outStream: stream,
     })
 
-    const outputs = JSON.parse(stdout) as Outputs
+    const outputs = JSON.parse(stream.contents()) as Outputs
 
     for (const [key, data] of Object.entries(outputs)) {
       if (data.sensitive) {
