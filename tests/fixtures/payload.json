@@ -1,0 +1,13 @@
+{
+  "action": "created",
+  "deployment": {
+    "id": 1,
+    "environment": "production"
+  },
+  "repository": {
+    "name": "tests",
+    "owner": {
+      "login": "ploys"
+    }
+  }
+}
