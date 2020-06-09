@@ -75,6 +75,10 @@ export async function run(): Promise<void> {
     const outputs = JSON.parse(stdout) as Outputs
 
     for (const [key, data] of Object.entries(outputs)) {
+      if (data.sensitive) {
+        core.setSecret(data.value)
+      }
+
       core.setOutput(key, data.value)
     }
   }
