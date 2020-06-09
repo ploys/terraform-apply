@@ -4,22 +4,47 @@ import * as path from 'path'
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 
+import * as util from './util'
+
 /**
  * Runs the action.
  */
 export async function run(): Promise<void> {
   const cwd = process.env.GITHUB_WORKSPACE as string
-  const pth = path.resolve(cwd, core.getInput('path'))
 
-  const stat = await fs.promises.stat(pth)
+  const decrypt = core.getInput('decrypt')
+  const source = path.resolve(cwd, core.getInput('path'))
+  const stat = await fs.promises.stat(source)
 
   if (stat.isFile()) {
-    await exec.exec('terraform', ['apply', '-auto-approve', '-input=false', pth], {
-      cwd: path.dirname(pth),
-    })
+    if (decrypt && (decrypt === 'true' || decrypt === 'on')) {
+      const secret = process.env.SECRET
+
+      if (!secret) {
+        throw new Error("Expected environment variable 'SECRET' with utf-8 encoding")
+      }
+
+      const buffer = await fs.promises.readFile(source)
+      const output = util.decrypt(buffer, secret)
+      const target = `${source}.decrypted`
+
+      await fs.promises.writeFile(target, output)
+      await exec.exec('terraform', ['apply', '-auto-approve', '-input=false', target], {
+        cwd: path.dirname(source),
+      })
+      await fs.promises.unlink(target)
+    } else {
+      await exec.exec('terraform', ['apply', '-auto-approve', '-input=false', source], {
+        cwd: path.dirname(source),
+      })
+    }
   } else if (stat.isDirectory()) {
-    await exec.exec('terraform', ['apply', '-auto-approve', '-input=false', pth], {
-      cwd: pth,
+    if (decrypt && (decrypt === 'true' || decrypt === 'on')) {
+      throw new Error('Decryption expects a plan file as input path')
+    }
+
+    await exec.exec('terraform', ['apply', '-auto-approve', '-input=false', source], {
+      cwd: source,
     })
   } else {
     throw new Error(`Unrecognized file or directory at ${path}`)

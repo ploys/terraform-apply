@@ -4,6 +4,9 @@ inputs:
   path:
     description: The source plan or directory
     required: false
+  decrypt:
+    description: Decrypt the plan
+    required: false
 runs:
   using: node12
   main: dist/index.js
