@@ -1,0 +1,9 @@
+name: Terraform Apply
+description: Apply a Terraform plan
+inputs:
+  path:
+    description: The source plan or directory
+    required: false
+runs:
+  using: node12
+  main: dist/index.js
