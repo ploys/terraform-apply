@@ -38,6 +38,7 @@ describe('Terraform Apply', () => {
     delete process.env.GITHUB_WORKSPACE
     delete process.env.INPUT_PATH
     delete process.env.INPUT_DECRYPT
+    delete process.env.INPUT_OUTPUTS
     delete process.env.SECRET
   })
 
@@ -146,5 +147,30 @@ describe('Terraform Apply', () => {
     stdout.stop()
 
     expect(stdout.output).toMatch('Creation complete')
+  }, 20000)
+
+  test('includes outputs', async () => {
+    const { path: cwd, cleanup } = await tmp.dir({ unsafeCleanup: true })
+
+    const src = path.join(__dirname, 'fixtures/terraform.tf')
+    const dst = path.join(cwd, 'terraform.tf')
+
+    process.env.GITHUB_WORKSPACE = cwd
+    process.env.INPUT_OUTPUTS = 'true'
+
+    stdout.start()
+
+    try {
+      await fs.promises.copyFile(src, dst)
+      await exec('terraform init', { cwd })
+      await run()
+    } finally {
+      await cleanup()
+    }
+
+    stdout.stop()
+
+    expect(stdout.output).toMatch('Creation complete')
+    expect(stdout.output).toMatch('::set-output name=output::')
   }, 20000)
 })

@@ -6,6 +6,14 @@ import * as exec from '@actions/exec'
 
 import * as util from './util'
 
+type Outputs = {
+  [key: string]: {
+    sensitive: boolean
+    type: string
+    value: any
+  }
+}
+
 /**
  * Runs the action.
  */
@@ -48,5 +56,26 @@ export async function run(): Promise<void> {
     })
   } else {
     throw new Error(`Unrecognized file or directory at ${path}`)
+  }
+
+  const output = core.getInput('outputs')
+
+  if (output && (output === 'true' || output === 'on')) {
+    let stdout = ''
+
+    await exec.exec('terraform', ['output', '-json'], {
+      cwd,
+      listeners: {
+        stdout: (data: Buffer) => {
+          stdout += data.toString()
+        },
+      },
+    })
+
+    const outputs = JSON.parse(stdout) as Outputs
+
+    for (const [key, data] of Object.entries(outputs)) {
+      core.setOutput(key, data.value)
+    }
   }
 }
