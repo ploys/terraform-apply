@@ -11,6 +11,9 @@ inputs:
     description: Export terraform outputs
     required: false
     default: 'true'
+  artifact:
+    description: The artifact url to download
+    required: false
 runs:
   using: node12
   main: dist/index.js
