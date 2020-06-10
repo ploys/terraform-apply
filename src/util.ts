@@ -22,3 +22,16 @@ export function decrypt(buffer: Buffer, secret: string): Buffer {
     throw new Error('Unable to decrypt plan file with given secret')
   }
 }
+
+/**
+ * Gets the temporary directory.
+ *
+ * @returns The temporary directory.
+ */
+export function tempdir(): string {
+  const temp = process.env['RUNNER_TEMP']
+
+  if (temp) return temp
+
+  throw new Error('Temporary directory not defined')
+}

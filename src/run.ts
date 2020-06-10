@@ -1,11 +1,12 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
+import extract from 'extract-zip'
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import { HttpClient } from '@actions/http-client'
 
 import * as util from './util'
-
 import { Stream } from './stream'
 
 type Outputs = {
@@ -24,6 +25,37 @@ export async function run(): Promise<void> {
 
   const decrypt = core.getInput('decrypt')
   const source = path.resolve(cwd, core.getInput('path'))
+
+  const artifact = core.getInput('artifact')
+
+  if (artifact && artifact !== '') {
+    const tmp = util.tempdir()
+    const regex = /^https:\/\/api\.github\.com\/repos\/.+\/.+\/actions\/artifacts\/.+\/zip$/gm
+    const token = process.env.GITHUB_TOKEN
+
+    if (!artifact.match(regex)) {
+      throw new Error(`Unsupported artifact url ${artifact}`)
+    }
+
+    if (!token) {
+      throw new Error("Expected environment variable 'GITHUB_TOKEN'")
+    }
+
+    const client = new HttpClient('http-client')
+    const zip = path.join(tmp, 'artifact.zip')
+    const file = fs.createWriteStream(zip)
+    const res = await client.get(artifact, { authorization: `Bearer ${token}` })
+
+    await new Promise(async (resolve, reject) => {
+      const pipe = res.message.pipe(file)
+
+      pipe.on('close', resolve)
+      pipe.on('error', reject)
+    })
+    await extract(zip, { dir: path.dirname(source) })
+    await fs.promises.unlink(zip)
+  }
+
   const stat = await fs.promises.stat(source)
 
   if (stat.isFile()) {
@@ -49,6 +81,10 @@ export async function run(): Promise<void> {
       })
     }
   } else if (stat.isDirectory()) {
+    if (artifact && artifact !== '') {
+      throw new Error('Plan file from artifact not found at input path')
+    }
+
     if (decrypt && (decrypt === 'true' || decrypt === 'on')) {
       throw new Error('Decryption expects a plan file as input path')
     }
