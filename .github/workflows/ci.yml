@@ -37,6 +37,7 @@ jobs:
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: 0.12.31
+        terraform_wrapper: false
 
     - name: Install Node.js
       uses: actions/setup-node@v1
