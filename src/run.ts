@@ -106,9 +106,7 @@ export async function run(): Promise<void> {
       outStream: stream,
     })
 
-    const c = stream.contents()
-    throw new Error(c)
-    const outputs = JSON.parse(c) as Outputs
+    const outputs = JSON.parse(stream.contents()) as Outputs
 
     for (const [key, data] of Object.entries(outputs)) {
       if (data.sensitive) {
